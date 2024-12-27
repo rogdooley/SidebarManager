@@ -6,6 +6,8 @@ One can create a file that contains the layout of the desired Finder Favorites. 
 
 *Note:* Currently will not import `nwnode` uris like the one for AirDrop (`domain-AirDrop -> nwnode://domain-AirDrop`). 
 
+I would strongly recommend backing up one's Finder Favorites prior to running this. 
+
 ### Requirements:
 
 [PyObjC](https://pypi.org/project/pyobjc/)
