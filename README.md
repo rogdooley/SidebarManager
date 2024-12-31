@@ -39,5 +39,5 @@ python3 SidebarManager.py -a "New Folder" "file:///Users/fred/NewFolder/"
 
 #### Remove a Favorite:
 ```shell
-python3 SidebarManager.py -r "My Folder"
+python3 SidebarManager.py -d "My Folder"
 ```
