@@ -45,60 +45,17 @@ class FinderSidebarManager:
                 file.write(f"{name} -> {resolved_url}\n")
         print(f"Favorites exported to {file_path}")
 
-    def import_favorites(self, file_path):
-        """Import sidebar favorites from a file.
-        
-        The file should contain entries in the format:
-        'label -> url'
-        For example:
-        'Dropbox -> file:///Users/username/Dropbox/'
-        ' -> nwnode://domain-AirDrop'
-        """
-        if not os.path.exists(file_path):
-            print(f"Error: File '{file_path}' not found.")
-            return
-
-        # First remove all existing favorites
-        self.remove_all()
-        
-        # Read and parse the file
-        with open(file_path, 'r') as file:
-            previous_label = None
-            for line in file:
-                line = line.strip()
-                if not line:
-                    continue
-                
-                try:
-                    # Split on ' -> ' to handle cases where label might contain '->'
-                    parts = line.split(' -> ', 1)
-                    if len(parts) != 2:
-                        print(f"Warning: Skipping invalid line format: {line}")
-                        continue
-                        
-                    label, url = parts
-                    label = label.strip()
-                    url = url.strip()
-                    
-                    # Add the favorite after the previous one
-                    self.add(label, url, after=previous_label)
-                    previous_label = label
-                    
-                except Exception as e:
-                    print(f"Error processing line '{line}': {str(e)}")
-                    continue
-        
-        print(f"Favorites imported from {file_path}")
-
     def add(self, label, path, after=None):
         """Add a new favorite, optionally after another favorite."""
-        item_url = NSURL.URLWithString_(path)
+        if not (path.startswith("file:///") or path.startswith("nwnode://")):
+            print(f"Error: Unsupported path type '{path}'. Must start with 'file:///' or 'nwnode://'.")
+            return
 
-        # Find the "after" item reference if specified
+        item_url = NSURL.URLWithString_(path)
         after_item = self.favorites.get(after) if after else kLSSharedFileListItemBeforeFirst
 
         LSSharedFileListInsertItemURL(
-            self.sfl_ref, after_item, label, None, item_url, None, None
+            self.sfl_ref, after_item, None, label, item_url, None, None
         )
         CFPreferencesAppSynchronize("com.apple.sidebarlists")
         print(f"Added: {label} -> {path} after {after if after else 'start'}")
@@ -113,6 +70,12 @@ class FinderSidebarManager:
             self.update()
         else:
             print(f"Error: Favorite '{label}' not found.")
+
+    def replace(self, label, new_path):
+        """Replace an existing entry with a new one."""
+        if label in self.favorites:
+            self.remove(label)
+        self.add(label, new_path)
 
     def remove_all(self):
         """Remove all sidebar favorites."""
@@ -144,7 +107,14 @@ def main():
         metavar=("LABEL", "PATH", "AFTER"),
         help="Add a favorite after another",
     )
-    parser.add_argument("-r", "--remove", metavar="LABEL", help="Remove a favorite")
+    parser.add_argument("-d", "--delete", metavar="LABEL", help="Remove a favorite")
+    parser.add_argument(
+        "-r",
+        "--replace",
+        nargs=2,
+        metavar=("LABEL", "NEW_PATH"),
+        help="Replace a favorite",
+    )
 
     args = parser.parse_args()
     manager = FinderSidebarManager()
@@ -161,9 +131,13 @@ def main():
         manager.add(label, path, after)
     elif args.remove:
         manager.remove(args.remove)
+    elif args.replace:
+        label, new_path = args.replace
+        manager.replace(label, new_path)
     else:
         parser.print_help()
 
 
 if __name__ == "__main__":
     main()
+
